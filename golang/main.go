@@ -405,6 +405,25 @@ func getSongsCountByPlaylistID(ctx context.Context, db connOrTx, playlistID int)
 	return count, nil
 }
 
+func getPlaylistsWithFavorite(ctx context.Context, db connOrTx) ([]PlaylistWithFavoriteRow, error) {
+	allPlaylists := make([]PlaylistWithFavoriteRow, 0, 150)
+	if err := db.SelectContext(
+		ctx,
+		&allPlaylists,
+		"SELECT id,ulid,name,user_account,is_public,created_at,updated_at,count FROM playlist INNER JOIN playlist_favorite_count ON playlist.id = playlist_favorite_count.playlist_id where is_public = ? ORDER BY created_at DESC LIMIT 150",
+		true,
+	); err != nil {
+		return nil, fmt.Errorf(
+			"error Select playlist by is_public=true: %w",
+			err,
+		)
+	}
+	if len(allPlaylists) == 0 {
+		return nil, nil
+	}
+	return allPlaylists, nil
+}
+
 // TODO: これがヤバい
 func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
 	var allPlaylists []PlaylistRow
@@ -471,35 +490,12 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 }
 
 func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
-	var popular []struct {
-		PlaylistID    int `db:"playlist_id"`
-		FavoriteCount int `db:"count"`
+	populars, err := getPlaylistsWithFavorite(ctx, db)
+	if err != nil {
+		return nil, err
 	}
-	if err := db.SelectContext(
-		ctx,
-		&popular,
-		`SELECT playlist_id, count FROM playlist_favorite_count ORDER BY count DESC`,
-	); err != nil {
-		return nil, fmt.Errorf(
-			"error Select playlist_favorite: %w",
-			err,
-		)
-	}
-
-	if len(popular) == 0 {
-		return nil, nil
-	}
-	playlists := make([]Playlist, 0, len(popular))
-	for _, p := range popular {
-		playlist, err := getPlaylistByID(ctx, db, p.PlaylistID)
-		if err != nil {
-			return nil, fmt.Errorf("error getPlaylistByID: %w", err)
-		}
-		// 非公開プレイリストは除外
-		if playlist == nil || !playlist.IsPublic {
-			continue
-		}
-
+	playlists := make([]Playlist, 0, len(populars))
+	for _, playlist := range populars {
 		user, err := getUserByAccount(ctx, db, playlist.UserAccount)
 		if err != nil {
 			return nil, fmt.Errorf("error getUserByAccount: %w", err)
