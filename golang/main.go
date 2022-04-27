@@ -473,12 +473,12 @@ func getRecentPlaylistSummaries(ctx context.Context, db connOrTx, userAccount st
 func getPopularPlaylistSummaries(ctx context.Context, db connOrTx, userAccount string) ([]Playlist, error) {
 	var popular []struct {
 		PlaylistID    int `db:"playlist_id"`
-		FavoriteCount int `db:"favorite_count"`
+		FavoriteCount int `db:"count"`
 	}
 	if err := db.SelectContext(
 		ctx,
 		&popular,
-		`SELECT playlist_id, count(*) AS favorite_count FROM playlist_favorite GROUP BY playlist_id ORDER BY count(*) DESC`,
+		`SELECT playlist_id, count FROM playlist_favorite_count ORDER BY count DESC`,
 	); err != nil {
 		return nil, fmt.Errorf(
 			"error Select playlist_favorite: %w",
