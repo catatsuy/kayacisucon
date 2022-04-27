@@ -708,7 +708,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 	}
 
 	songs := make([]Song, 0, len(resPlaylistSongs))
-	songIDs := make([]interface{}, 0, len(resPlaylistSongs))
+	songIDs := make([]int, 0, len(resPlaylistSongs))
 	for _, row := range resPlaylistSongs {
 		songIDs = append(songIDs, row.SongID)
 	}
@@ -723,7 +723,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 		ctx,
 		&songRows,
 		query,
-		args,
+		args...,
 	)
 	if err != nil {
 		return nil, err
