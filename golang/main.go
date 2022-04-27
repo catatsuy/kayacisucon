@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"time"
 	"unicode/utf8"
@@ -730,6 +731,8 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 	for _, row := range resPlaylistSongs {
 		songIDs = append(songIDs, row.SongID)
 	}
+
+	sort.Slice(songIDs, func(i, j int) bool { return songIDs[i] > songIDs[j] })
 
 	query, args, err := sqlx.In("SELECT * FROM song WHERE id IN (?)", songIDs)
 	if err != nil {
