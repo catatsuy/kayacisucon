@@ -747,22 +747,35 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 		return nil, err
 	}
 
+	artistIDs := make([]int, 0, len(resPlaylistSongs))
 	for _, sr := range songRows {
 		songRowsMap[sr.ID] = sr
+		artistIDs = append(artistIDs, sr.ArtistID)
+	}
+
+	query, args, err = sqlx.In("SELECT * FROM artist WHERE id IN (?)", artistIDs)
+	if err != nil {
+		return nil, err
+	}
+	artistRows := make([]ArtistRow, 0, len(resPlaylistSongs))
+	artistRowsMap := make(map[int]ArtistRow)
+	err = db.SelectContext(
+		ctx,
+		&artistRows,
+		query,
+		args...,
+	)
+	if err != nil {
+		return nil, err
+	}
+	for _, ar := range artistRows {
+		artistRowsMap[ar.ID] = ar
 	}
 
 	for _, row := range resPlaylistSongs {
 		song := songRowsMap[row.SongID]
 
-		var artist ArtistRow
-		if err := db.GetContext(
-			ctx,
-			&artist,
-			"SELECT * FROM artist WHERE id = ?",
-			song.ArtistID,
-		); err != nil {
-			return nil, fmt.Errorf("error Get artist by id=%d: %w", song.ArtistID, err)
-		}
+		artist := artistRowsMap[song.ArtistID]
 
 		songs = append(songs, Song{
 			ULID:        song.ULID,
