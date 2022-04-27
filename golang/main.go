@@ -708,7 +708,21 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 	}
 
 	if len(resPlaylistSongs) == 0 {
-		return nil, nil
+		return &PlaylistDetail{
+			Playlist: &Playlist{
+				ULID:            playlist.ULID,
+				Name:            playlist.Name,
+				UserDisplayName: user.DisplayName,
+				UserAccount:     user.Account,
+				SongCount:       0,
+				FavoriteCount:   favoriteCount,
+				IsFavorited:     isFavorited,
+				IsPublic:        playlist.IsPublic,
+				CreatedAt:       playlist.CreatedAt,
+				UpdatedAt:       playlist.UpdatedAt,
+			},
+			Songs: make([]Song, 0, len(resPlaylistSongs)),
+		}, nil
 	}
 
 	songs := make([]Song, 0, len(resPlaylistSongs))
