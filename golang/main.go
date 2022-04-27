@@ -410,7 +410,7 @@ func getPlaylistsWithFavorite(ctx context.Context, db connOrTx) ([]PlaylistWithF
 	if err := db.SelectContext(
 		ctx,
 		&allPlaylists,
-		"SELECT id,ulid,name,user_account,is_public,created_at,updated_at,count FROM playlist INNER JOIN playlist_favorite_count ON playlist.id = playlist_favorite_count.playlist_id where is_public = ? ORDER BY created_at DESC LIMIT 150",
+		"SELECT id,ulid,name,user_account,is_public,created_at,updated_at,count FROM playlist INNER JOIN playlist_favorite_count ON playlist.id = playlist_favorite_count.playlist_id where is_public = ? ORDER BY count DESC LIMIT 150",
 		true,
 	); err != nil {
 		return nil, fmt.Errorf(
