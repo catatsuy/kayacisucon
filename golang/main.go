@@ -77,6 +77,9 @@ func cacheControllPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+var songRowsMap map[int]SongRow
+var artistRowsMap map[int]ArtistRow
+
 func main() {
 	e := echo.New()
 	e.Debug = true
@@ -143,6 +146,36 @@ func main() {
 	if err != nil {
 		e.Logger.Fatalf("failed to initialize session store: %v", err)
 		return
+	}
+
+	songRows := make([]SongRow, 0, 367950)
+	songRowsMap = make(map[int]SongRow)
+	err = db.SelectContext(
+		context.Background(),
+		&songRows,
+		"SELECT * FROM song",
+	)
+	if err != nil {
+		e.Logger.Fatalf("%v", err)
+		return
+	}
+	for _, s := range songRows {
+		songRowsMap[s.ID] = s
+	}
+
+	artistRows := make([]ArtistRow, 0, 367950)
+	artistRowsMap = make(map[int]ArtistRow)
+	err = db.SelectContext(
+		context.Background(),
+		&artistRows,
+		"SELECT * FROM artist",
+	)
+	if err != nil {
+		e.Logger.Fatalf("%v", err)
+		return
+	}
+	for _, a := range artistRows {
+		artistRowsMap[a.ID] = a
 	}
 
 	port := getEnv("SERVER_APP_PORT", "3000")
@@ -709,25 +742,8 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 
 	songs := make([]Song, 0, len(resPlaylistSongs))
 	for _, row := range resPlaylistSongs {
-		var song SongRow
-		if err := db.GetContext(
-			ctx,
-			&song,
-			"SELECT * FROM song WHERE id = ?",
-			row.SongID,
-		); err != nil {
-			return nil, fmt.Errorf("error Get song by id=%d: %w", row.SongID, err)
-		}
-
-		var artist ArtistRow
-		if err := db.GetContext(
-			ctx,
-			&artist,
-			"SELECT * FROM artist WHERE id = ?",
-			song.ArtistID,
-		); err != nil {
-			return nil, fmt.Errorf("error Get artist by id=%d: %w", song.ArtistID, err)
-		}
+		song := songRowsMap[row.SongID]
+		artist := artistRowsMap[song.ArtistID]
 
 		songs = append(songs, Song{
 			ULID:        song.ULID,
