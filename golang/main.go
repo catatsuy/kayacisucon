@@ -707,6 +707,10 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 		)
 	}
 
+	if len(resPlaylistSongs) == 0 {
+		return nil, nil
+	}
+
 	songs := make([]Song, 0, len(resPlaylistSongs))
 	songIDs := make([]int, 0, len(resPlaylistSongs))
 	for _, row := range resPlaylistSongs {
