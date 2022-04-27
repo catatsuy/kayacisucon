@@ -77,6 +77,8 @@ func cacheControllPrivate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
+var songRowsMap map[int]SongRow
+
 func main() {
 	e := echo.New()
 	e.Debug = true
@@ -143,6 +145,21 @@ func main() {
 	if err != nil {
 		e.Logger.Fatalf("failed to initialize session store: %v", err)
 		return
+	}
+
+	songRows := make([]SongRow, 0, 367950)
+	songRowsMap = make(map[int]SongRow)
+	err = db.SelectContext(
+		context.Background(),
+		&songRows,
+		"SELECT * FROM song",
+	)
+	if err != nil {
+		e.Logger.Fatalf("%v", err)
+		return
+	}
+	for _, s := range songRows {
+		songRowsMap[s.ID] = s
 	}
 
 	port := getEnv("SERVER_APP_PORT", "3000")
@@ -709,15 +726,7 @@ func getPlaylistDetailByPlaylistULID(ctx context.Context, db connOrTx, playlistU
 
 	songs := make([]Song, 0, len(resPlaylistSongs))
 	for _, row := range resPlaylistSongs {
-		var song SongRow
-		if err := db.GetContext(
-			ctx,
-			&song,
-			"SELECT * FROM song WHERE id = ?",
-			row.SongID,
-		); err != nil {
-			return nil, fmt.Errorf("error Get song by id=%d: %w", row.SongID, err)
-		}
+		song := songRowsMap[row.SongID]
 
 		var artist ArtistRow
 		if err := db.GetContext(
